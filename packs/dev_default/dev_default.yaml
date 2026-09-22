@@ -1,0 +1,138 @@
+# Regent dev_default pack — for the Day-1 demo: filesystem + GitHub MCP servers behind agentgateway.
+# Not a regulatory pack. Controls map to the generic frameworks engineers already know so
+# the evidence package has something to key on.
+
+pack: dev_default/v1
+version: "0.1.0"
+description: Sensible defaults for a coding agent with filesystem and GitHub tools. Reads allowed, writes held, destructive operations denied.
+
+controls:
+  OWASP-ASI01: "OWASP Agentic Top 10 — ASI01 Agent Goal/Instruction Manipulation (unsupervised destructive actions)"
+  OWASP-ASI03: "OWASP Agentic Top 10 — ASI03 Identity & Privilege Abuse"
+  OWASP-ASI05: "OWASP Agentic Top 10 — ASI05 Unexpected Code Execution / RCE"
+  NIST-AI-RMF-GOVERN-1.1: "NIST AI RMF 1.0 — Govern 1.1: legal and regulatory requirements understood, managed, documented"
+  NIST-AI-RMF-MANAGE-2.2: "NIST AI RMF 1.0 — Manage 2.2: mechanisms to sustain the value of deployed AI systems, including human oversight"
+  SOC2-CC6.1: "SOC 2 Trust Services Criteria CC6.1 — logical access controls restrict access to authorized users"
+  SOC2-CC8.1: "SOC 2 Trust Services Criteria CC8.1 — changes to infrastructure, data and software are authorized, tested and approved"
+  EU-AI-Act-Art14: "EU AI Act Article 14 — human oversight"
+
+rules:
+
+  - id: DEV-FS-001
+    description: Reads inside the sandbox root are allowed.
+    tool: fs.read_file
+    allow_if: not startswith(args.path, "/etc") and not matches(args.path, "\\.(pem|key|env)$")
+    controls: [SOC2-CC6.1, OWASP-ASI03]
+    examiner_asks: "Which files can the agent read, and what is excluded?"
+
+  - id: DEV-FS-002
+    description: Listing and searching are allowed anywhere the server exposes.
+    tool: fs.list_directory
+    allow_if: "true"
+    controls: [SOC2-CC6.1]
+    examiner_asks: "Can the agent enumerate the filesystem?"
+
+  - id: DEV-FS-003
+    tool: fs.search_files
+    allow_if: "true"
+    controls: [SOC2-CC6.1]
+    examiner_asks: "Can the agent search file contents?"
+
+  - id: DEV-FS-004
+    description: Writes are held for a human; writes to secrets or dotfiles are denied outright.
+    tool: fs.write_file
+    hold_if: "true"
+    deny_if: matches(args.path, "\\.(pem|key|env)$") or startswith(args.path, "/etc")
+    approval:
+      workflow: single
+      approvers: [any]
+      attest: "I have reviewed the content the agent wants to write."
+      grant_ttl: 5m
+      sla: 30m
+    controls: [SOC2-CC8.1, OWASP-ASI01, EU-AI-Act-Art14]
+    examiner_asks: "Are agent file writes reviewed by a person before they land?"
+
+  - id: DEV-FS-005
+    tool: fs.edit_file
+    hold_if: "true"
+    approval:
+      workflow: single
+      approvers: [any]
+      attest: "I have reviewed the edit the agent wants to apply."
+      grant_ttl: 5m
+      sla: 30m
+    controls: [SOC2-CC8.1, OWASP-ASI01]
+    examiner_asks: "Are agent file edits reviewed by a person before they land?"
+
+  - id: DEV-FS-006
+    description: Moves and deletes through the agent are not allowed.
+    tool: fs.move_file
+    deny_if: "true"
+    no_override: true
+    controls: [OWASP-ASI01, SOC2-CC8.1]
+    examiner_asks: "Can the agent move or remove files?"
+
+  - id: DEV-GH-001
+    description: Reading repositories, issues and PRs is allowed.
+    tool: github.get_*
+    allow_if: "true"
+    controls: [SOC2-CC6.1]
+    examiner_asks: "What can the agent read from GitHub?"
+
+  - id: DEV-GH-002
+    tool: github.list_*
+    allow_if: "true"
+    controls: [SOC2-CC6.1]
+    examiner_asks: "What can the agent enumerate in GitHub?"
+
+  - id: DEV-GH-003
+    tool: github.search_*
+    allow_if: "true"
+    controls: [SOC2-CC6.1]
+    examiner_asks: "What can the agent search in GitHub?"
+
+  - id: DEV-GH-004
+    description: Opening a pull request is the one write we want agents to do — but a person approves it, and never against protected branches directly.
+    tool: github.create_pull_request
+    hold_if: "true"
+    approval:
+      workflow: single
+      approvers: [any]
+      attest: "I have reviewed the PR title, body and target branch."
+      grant_ttl: 10m
+      sla: 1h
+    controls: [SOC2-CC8.1, NIST-AI-RMF-MANAGE-2.2]
+    examiner_asks: "Does a person approve every pull request the agent opens?"
+
+  - id: DEV-GH-005
+    description: Direct pushes to main/master are denied; other branches are held.
+    tool: github.push_files
+    deny_if: args.branch in [main, master, production]
+    hold_if: "true"
+    approval:
+      workflow: single
+      approvers: [any]
+      grant_ttl: 10m
+      sla: 1h
+    controls: [SOC2-CC8.1, OWASP-ASI05]
+    examiner_asks: "Can the agent push directly to protected branches?"
+
+  - id: DEV-GH-006
+    tool: github.create_or_update_file
+    deny_if: args.branch in [main, master, production]
+    hold_if: "true"
+    approval:
+      workflow: single
+      approvers: [any]
+      grant_ttl: 10m
+      sla: 1h
+    controls: [SOC2-CC8.1, OWASP-ASI05]
+    examiner_asks: "Can the agent commit directly to protected branches?"
+
+  - id: DEV-GH-007
+    description: Deleting repos, branches or files is never allowed through the agent.
+    tool: github.delete_*
+    deny_if: "true"
+    no_override: true
+    controls: [OWASP-ASI01, SOC2-CC8.1]
+    examiner_asks: "Can the agent delete anything in GitHub?"

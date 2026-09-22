@@ -1,0 +1,408 @@
+# Regent RIA pack v0.2 — SEC-registered investment adviser (not dual-registered)
+#
+# Written for the CCO, compiled for the gateway. Every rule names the control an examiner
+# will ask about and the question it answers. Cheap rules run natively in agentgateway; rules
+# with arguments, holds or state run in the Regent PDS.
+#
+# v0.2 applies docs/RIA-CCO-REVIEW.md §6: exception-based trade holds, discretionary-authority
+# deny, restricted list, tiered money movement with the seven SLOA conditions, the actual
+# Marketing Rule advertisement definition, recipient-of-record NPI handling, order-memorandum
+# fields (204-2(a)(3)), fee billing, communications retention, firm overlay, on_sla_expiry,
+# and the exam request-list index.
+#
+# Tool naming: <mcp target>.<tool>  (custodian, crm, email, esign)
+#
+# Thresholds and lists NEVER live in this file. They come from a firm overlay
+# (`firm.yaml` beside this file, or `--firm <file>`); the loader refuses to run without one.
+# `firm.example.yaml` shows every key with a plausible value for a ~$1.5B, 40-person adviser.
+#
+# Status: v0.2, corrected against a simulated CCO review (docs/RIA-CCO-REVIEW.md). Still needs a
+# practising CCO's judgment review before it is represented as reviewed.
+
+pack: ria/v1
+version: "0.2.0"
+description: >
+  Supervision, custody, books-and-records, marketing and NPI-protection controls for an
+  SEC-registered investment adviser running agents against custodian, CRM, email and
+  e-signature MCP servers. Exception-based: routine trading and client service flow;
+  the conditions an examiner asks about are held or denied.
+
+firm_overlay_required:
+  - large_trade_threshold_usd
+  - model_tolerance_pct
+  - concentration_limit_pct
+  - restricted_list
+  - accounts_with_pending_withdrawal
+  - fee_tolerance_bps
+  - fee_period_change_pct
+  - instruction_change_lookback_days
+  - secure_channels
+
+controls:
+  SEC-206(4)-7: "Advisers Act Rule 206(4)-7 — written compliance policies and procedures; annual review (17 CFR 275.206(4)-7)"
+  SEC-204-2(a)(2): "Rule 204-2(a)(2) — general and auxiliary ledgers reflecting asset, liability, reserve, capital, income and expense accounts (17 CFR 275.204-2(a)(2))"
+  SEC-204-2(a)(3): "Rule 204-2(a)(3) — memorandum of each order: terms and conditions, person who recommended, person who placed, account, date of entry, executing broker/dealer, and whether the order was discretionary (17 CFR 275.204-2(a)(3))"
+  SEC-204-2(a)(7): "Rule 204-2(a)(7) — originals of written communications received and copies sent relating to recommendations, receipt/disbursement of funds or securities, or orders (17 CFR 275.204-2(a)(7))"
+  SEC-204-2(a)(10): "Rule 204-2(a)(10) — all written agreements entered into by the adviser with any client (17 CFR 275.204-2(a)(10))"
+  SEC-204-2(a)(11): "Rule 204-2(a)(11), as amended 2020 — a copy of each advertisement the adviser disseminates, and the supporting records (17 CFR 275.204-2(a)(11))"
+  SEC-204-2(a)(14): "Rule 204-2(a)(14) — record of each Form ADV Part 2 / relationship summary given or offered to a client, with date (17 CFR 275.204-2(a)(14))"
+  SEC-204-2(e): "Rule 204-2(e) — records maintained for not less than five years, first two in an appropriate office (17 CFR 275.204-2(e))"
+  SEC-204-3: "Rule 204-3 — delivery of the Form ADV brochure (Part 2) and relationship summary at or before entering into an advisory contract (17 CFR 275.204-3)"
+  SEC-204A: "Advisers Act §204A — written policies reasonably designed to prevent misuse of material non-public information; the restricted/watch list is the firm's evidence (15 U.S.C. 80b-4a)"
+  SEC-204A-1: "Rule 204A-1 — code of ethics; 204A-1(c) mandates pre-clearance of access-person IPO and limited-offering purchases; broader pre-clearance is a firm-policy choice (17 CFR 275.204A-1)"
+  SEC-206(3): "Advisers Act §206(3) — principal transactions require written disclosure and client consent before completion of each transaction (15 U.S.C. 80b-6(3))"
+  SEC-206(3)-2: "Rule 206(3)-2 — agency cross transactions: blanket prospective written consent plus per-transaction written confirmation and annual statement (17 CFR 275.206(3)-2)"
+  SEC-206(4)-1: "Rule 206(4)-1 — Marketing Rule; 'advertisement' is a communication to more than one person offering advisory services, or any hypothetical performance; testimonials/endorsements (17 CFR 275.206(4)-1)"
+  SEC-206(4)-2: "Rule 206(4)-2 — Custody Rule; qualified custodian, notices, surprise examination; fee deduction and third-party transfer authority are custody (17 CFR 275.206(4)-2)"
+  IAA-SLOA-NAL-2017: "SEC Division of Investment Management no-action letter to the Investment Adviser Association (Feb 21, 2017) — seven conditions under which a standing letter of authorization does not trigger the surprise-examination requirement"
+  SEC-RegS-P-248.30: "Regulation S-P Rule 30 — safeguards, incident response program and customer notification for nonpublic personal information (17 CFR 248.30, as amended May 2024; compliance Dec 3, 2025 / June 3, 2026)"
+  SEC-RegS-P-248.30(a)(2): "Regulation S-P Rule 30(a)(2) — written policies for the protection of customer information, including secure handling and transmission (17 CFR 248.30(a)(2))"
+  SEC-RegS-P-248.30(a)(5): "Regulation S-P Rule 30(a)(5) — oversight of service providers that receive, maintain or process customer information (17 CFR 248.30(a)(5))"
+  SEC-RegS-ID-248.201: "Regulation S-ID — identity theft red flags program; changes to payment instructions and new payees are enumerated red flags (17 CFR 248.201 and Appendix A)"
+  GLBA-501(b): "Gramm-Leach-Bliley Act §501(b) — administrative, technical and physical safeguards for customer information (15 U.S.C. 6801(b))"
+  FIDUCIARY-2019-INTERP: "Commission Interpretation Regarding Standard of Conduct for Investment Advisers, IA-5248 (June 5, 2019) — duty of care includes acting within the scope of authority the client granted"
+  EXAM-PRIORITIES-2026-AI: "SEC Division of Examinations 2026 priorities — controls over AI and automated tools must operate as disclosed in Form ADV"
+
+# ------------------------------------------------------------------------------------------ trading
+
+rules:
+
+  - id: RIA-TRD-011
+    description: >
+      Discretionary authority. An agent may only place an order in an account where the firm holds
+      trading discretion, or against a documented client instruction. Trading a non-discretionary
+      account without instruction is a fiduciary breach; there is no approval path.
+    tool: custodian.place_trade
+    priority: 5
+    deny_if: not args.discretionary and not has(args.client_instruction_id)
+    no_override: true
+    controls: [FIDUCIARY-2019-INTERP, SEC-206(4)-7, SEC-204-2(a)(3)]
+    examiner_asks: "How does the firm ensure agent-initiated orders are placed only in accounts where it holds discretionary authority or has a documented client instruction?"
+
+  - id: RIA-TRD-002
+    description: >
+      Principal transactions require per-transaction written consent (§206(3)); agency-cross
+      transactions may rely on a standing consent but need the per-transaction written confirmation
+      (206(3)-2). An agent cannot self-certify either. For a firm that never trades as principal
+      this rule fires zero times; that is expected and is not evidence of principal trading.
+    tool: custodian.place_trade
+    priority: 10
+    deny_if: (args.capacity == principal and not has(args.client_consent_id)) or (args.capacity == agency_cross and not has(args.cross_confirmation_id))
+    no_override: true
+    controls: [SEC-206(3), SEC-206(3)-2, SEC-204-2(a)(7)]
+    examiner_asks: "How do you prevent principal or agency-cross trades from being executed without the consent and confirmation records the rule requires?"
+
+  - id: RIA-ETH-003
+    description: >
+      Access-person and proprietary accounts are not traded by the client-trading agent. Personal
+      trades go through the Code of Ethics process (pre-clearance as required by the firm's Code;
+      204A-1(c) mandates it for IPOs and limited offerings). A firm may relax this in its own
+      overlay pack; the default is deny.
+    tool: custodian.place_trade
+    priority: 20
+    deny_if: args.account_type in [employee, access_person, proprietary]
+    no_override: true
+    controls: [SEC-204A-1, SEC-206(4)-7]
+    examiner_asks: "Can the client-trading agent transact in access-person or proprietary accounts, and how are those trades pre-cleared and reported under the Code of Ethics?"
+
+  - id: RIA-TRD-012
+    description: >
+      Options and margin only in accounts approved for them. The approval is an attribute of the
+      client account (custodian options level), not of the adviser principal.
+    tool: custodian.place_trade
+    priority: 25
+    deny_if: args.security_type in [option, options, margin] and not args.account_options_approved
+    controls: [SEC-206(4)-7, FIDUCIARY-2019-INTERP]
+    examiner_asks: "How do you prevent options or margin transactions in accounts the client has not been approved for?"
+
+  - id: RIA-REC-019
+    description: >
+      Order memorandum completeness. Every order must carry the fields Rule 204-2(a)(3) requires so
+      the ledger can stand in for the trade blotter: whether discretionary, who recommended, who
+      placed (agent identity plus on-behalf-of user), executing broker, and the order terms
+      (side, quantity, order type, limit, time in force).
+    tool: custodian.place_trade
+    priority: 30
+    deny_if: not (has(args.discretionary) and has(args.recommended_by) and has(args.placed_by) and has(args.executing_broker) and has(args.order_terms))
+    controls: [SEC-204-2(a)(3), SEC-204-2(e)]
+    examiner_asks: "Produce the order memorandum for each agent-initiated order, showing who recommended, who placed, the executing broker and whether the order was discretionary."
+
+  - id: RIA-TRD-001
+    description: >
+      Exception-based supervision of agent trades. Routine orders in the agent's assigned accounts
+      flow; the trading supervisor (or CCO) reviews by exception: restricted-list security, model
+      deviation beyond tolerance, post-trade concentration beyond limit, an account with a pending
+      withdrawal, the first trade in an account, or a large trade as the firm defines it. An
+      unanswered hold cancels the order and logs a trade error — a stale hold on a market order
+      is a trade error waiting to happen.
+    tool: custodian.place_trade
+    priority: 50
+    allow_if: args.account in principal.assigned_accounts
+    hold_if: >
+      args.account in principal.assigned_accounts and (
+        args.security_id in firm.restricted_list
+        or args.model_deviation_pct > firm.model_tolerance_pct
+        or args.post_trade_concentration_pct > firm.concentration_limit_pct
+        or args.account in firm.accounts_with_pending_withdrawal
+        or args.is_first_trade_in_account
+        or args.notional_usd > firm.large_trade_threshold_usd)
+    approval:
+      workflow: single
+      approvers: [role:trading_supervisor, role:cco]
+      attest: "I have reviewed this exception against the client's mandate, the restricted list and the firm's trading procedures."
+      grant_ttl: 10m
+      sla: 30m
+      on_sla_expiry: cancel_and_log_trade_error
+    controls: [SEC-206(4)-7, SEC-204-2(a)(3), SEC-204A, FIDUCIARY-2019-INTERP]
+    examiner_asks: "How are agent-initiated orders supervised for mandate, restricted-list and concentration exceptions, and where is the record of each exception review?"
+
+  - id: RIA-FEE-020
+    description: >
+      Fee billing. Fee deduction from client accounts is custody, and fee-calculation errors are the
+      most common exam finding. Hold any fee that deviates from the client's schedule by more than
+      the firm's tolerance or from the prior period by more than the firm's change threshold.
+    tool: custodian.debit_fee
+    hold_if: abs(args.fee_bps - args.schedule_fee_bps) > firm.fee_tolerance_bps or abs(args.change_vs_prior_period_pct) > firm.fee_period_change_pct
+    approval:
+      workflow: single
+      approvers: [role:operations_manager, role:cco]
+      attest: "I have reconciled this fee to the client's fee schedule and the billing period's average balance."
+      grant_ttl: 1h
+      sla: 1d
+      on_sla_expiry: notify_adviser
+    controls: [SEC-206(4)-2, SEC-206(4)-7, SEC-204-2(a)(2)]
+    examiner_asks: "How are advisory fees calculated and reconciled to client agreements before being deducted, and who reviews exceptions?"
+
+# ------------------------------------------------------------------------------------------ custody / money movement
+
+  - id: RIA-CUS-004
+    description: >
+      Third-party disbursement without a standing letter of authorization that satisfies all seven
+      conditions of the 2017 IAA no-action letter means the firm has custody and owes a surprise
+      examination. No approval path.
+    tool: custodian.transfer_funds
+    priority: 5
+    deny_if: args.destination_type == third_party and (not has(args.sloa_id) or not args.sloa_all_seven_conditions_met)
+    no_override: true
+    controls: [SEC-206(4)-2, IAA-SLOA-NAL-2017]
+    examiner_asks: "For each third-party transfer an agent initiated, show the standing letter of authorization and that all seven no-action conditions were met — or the surprise examination that covers it."
+
+  - id: RIA-CUS-015
+    description: >
+      Payee or instruction changed recently (within the firm's lookback). Held regardless of
+      destination type: this is the enumerated Reg S-ID red flag and the dominant wire-fraud pattern.
+    tool: custodian.transfer_funds
+    priority: 10
+    hold_if: has(args.instructions_changed_days_ago) and args.instructions_changed_days_ago <= firm.instruction_change_lookback_days
+    approval:
+      workflow: four_eyes
+      approvers: [role:operations_manager, role:cco]
+      attest: "I have verified this changed payee or instruction with the client by call-back to a number of record, not a number supplied in the request."
+      grant_ttl: 15m
+      sla: 4h
+      on_sla_expiry: cancel_and_notify_adviser
+    controls: [SEC-RegS-ID-248.201, SEC-206(4)-2, SEC-204-2(a)(7)]
+    examiner_asks: "What is your red-flags procedure for transfers where the payee or instructions changed recently, and how is call-back verification evidenced?"
+
+  - id: RIA-CUS-016
+    description: >
+      Third-party transfer with an SLOA on file: four-eyes, and the approver attests to the seven
+      no-action conditions by name.
+    tool: custodian.transfer_funds
+    priority: 20
+    hold_if: args.destination_type == third_party
+    approval:
+      workflow: four_eyes
+      approvers: [role:operations_manager, role:cco]
+      attest: >
+        I confirm the seven SLOA conditions: (1) the client's signed instruction names the third party and
+        the account; (2) the client has authorised the adviser to direct transfers to that payee only;
+        (3) the custodian verified the instruction and provides a transfer-of-funds notice to the client;
+        (4) the client can terminate or change the instruction; (5) the adviser has no authority to change
+        the payee's identity, address or account; (6) the adviser maintains records showing the third party
+        is not a related party of the adviser; (7) the custodian sends the client an initial notice and an
+        annual notice confirming the instruction.
+      grant_ttl: 15m
+      sla: 4h
+      on_sla_expiry: cancel_and_notify_adviser
+    controls: [SEC-206(4)-2, IAA-SLOA-NAL-2017, SEC-RegS-ID-248.201]
+    examiner_asks: "How does the firm ensure each third-party disbursement stays within the SLOA no-action conditions, and who attests to that per transfer?"
+
+  - id: RIA-CUS-017
+    description: First-party wire to another institution — hold, single operations approval; destination must match the client's original written authorization.
+    tool: custodian.transfer_funds
+    priority: 30
+    hold_if: args.destination_type == first_party and args.transfer_type == wire
+    approval:
+      workflow: single
+      approvers: [role:operations_manager]
+      attest: "The destination account matches the client's written authorization on file."
+      grant_ttl: 15m
+      sla: 4h
+      on_sla_expiry: cancel_and_notify_adviser
+    controls: [SEC-206(4)-2, SEC-204-2(a)(7)]
+    examiner_asks: "How are first-party wires to outside institutions matched to the client's written authorization?"
+
+  - id: RIA-CUS-018
+    description: >
+      First-party, like-titled journal or ACH at the same custodian (client to their own account) is
+      custody-free and flows without a hold. Anything that does not fit a tier above is denied.
+    tool: custodian.transfer_funds
+    priority: 40
+    allow_if: args.destination_type == first_party and args.transfer_type in [journal, ach] and args.like_titled
+    controls: [SEC-206(4)-2, IAA-SLOA-NAL-2017]
+    examiner_asks: "Which agent-initiated money movements does the firm treat as custody-free, and on what basis?"
+
+# ------------------------------------------------------------------------------------------ data protection
+
+  - id: RIA-DAT-005
+    description: A Social Security number never leaves through an automated email; no approval path exists by design.
+    tool: email.send
+    priority: 10
+    deny_if: contains_pii(args.body, [ssn]) or contains_pii(args.subject, [ssn])
+    no_override: true
+    controls: [SEC-RegS-P-248.30, GLBA-501(b)]
+    examiner_asks: "What prevents Social Security numbers from leaving the firm through automated channels, and can anyone override it?"
+
+  - id: RIA-DAT-014
+    description: >
+      Other NPI (account numbers, DOB, routing, card) may go to the account holder at their email of
+      record over a secure-delivery channel — a client's own statement is normal business. It is
+      denied when the recipient is not the verified email of record for the account or the channel
+      is not one of the firm's secure methods.
+    tool: email.send
+    priority: 12
+    deny_if: contains_pii(args.body, [account_number, dob, routing_number, credit_card]) and not (args.recipient_is_email_of_record and args.channel in firm.secure_channels)
+    controls: [SEC-RegS-P-248.30(a)(2), GLBA-501(b)]
+    examiner_asks: "Under what conditions may nonpublic personal information be sent by automated email, and how is the recipient verified against the account's email of record?"
+
+  - id: RIA-COM-013
+    description: >
+      Communications retention. Every outbound agent communication must be captured by the firm's
+      archive before it is sent; this is the 204-2(a)(7) obligation the off-channel-communications
+      sweep enforces.
+    tool: email.send
+    priority: 15
+    deny_if: not args.archived
+    controls: [SEC-204-2(a)(7), SEC-204-2(e)]
+    examiner_asks: "Are all agent-sent communications captured in the firm's books-and-records archive, and how would an unarchived message be prevented?"
+
+  - id: RIA-COM-006
+    description: >
+      Marketing Rule. An advertisement is a communication to more than one person that offers
+      advisory services (or new services to current clients), or any communication containing
+      hypothetical performance. One-on-one communications are excluded unless they contain
+      hypothetical performance. Advertisements are held for compliance review and retained under
+      204-2(a)(11); everything else is correspondence retained under 204-2(a)(7).
+    tool: email.send
+    priority: 50
+    hold_if: (len(args.to) > 1 and (args.offers_services or args.contains_performance or args.contains_testimonial)) or contains_hypothetical_performance(args.body)
+    approval:
+      workflow: single
+      approvers: [role:cco, role:marketing_reviewer]
+      attest: "I have reviewed this communication under Rule 206(4)-1: no untrue or misleading statement, substantiated claims, balanced and net-of-fee performance where shown, and required disclosures for any testimonial or endorsement."
+      grant_ttl: 30m
+      sla: 2d
+      on_sla_expiry: deny_and_log
+    controls: [SEC-206(4)-1, SEC-204-2(a)(11), SEC-204-2(a)(7)]
+    examiner_asks: "How does the firm identify which agent-drafted communications are advertisements under Rule 206(4)-1, and how are those reviewed and retained?"
+
+  - id: RIA-DAT-007
+    description: >
+      Bulk exports of client records are held; the approver attests to the business purpose and the
+      destination's safeguards. Destination and row count are captured in the ledger entry so the
+      evidence package answers "to where, and how many records" under the 2024 service-provider
+      oversight provision.
+    tool: crm.export
+    hold_if: "true"
+    approval:
+      workflow: single
+      approvers: [role:cco, role:ciso]
+      attest: "This export has a documented business purpose and the destination is a service provider covered by the firm's Reg S-P oversight program."
+      grant_ttl: 15m
+      sla: 1d
+      on_sla_expiry: deny_and_log
+    controls: [SEC-RegS-P-248.30, SEC-RegS-P-248.30(a)(5), GLBA-501(b)]
+    examiner_asks: "Who authorised each bulk export of client data by automated systems, to which service provider, and how many records?"
+
+# ------------------------------------------------------------------------------------------ agreements and records
+
+  - id: RIA-REC-008
+    description: >
+      Client agreements go out only on approved templates and only with Form ADV Part 2 (and the
+      relationship summary for retail clients) delivered at or before signing. Executed agreements
+      and the delivery record are books and records.
+    tool: esign.send_envelope
+    allow_if: args.template_id in principal.approved_templates and has(args.adv_delivery_receipt_id)
+    hold_if: not (args.template_id in principal.approved_templates) or not has(args.adv_delivery_receipt_id)
+    approval:
+      workflow: single
+      approvers: [role:cco]
+      attest: "This agreement is an approved form for this client type and the Form ADV brochure and relationship summary were delivered at or before signing."
+      grant_ttl: 30m
+      sla: 2d
+      on_sla_expiry: deny_and_log
+    controls: [SEC-204-2(a)(10), SEC-204-3, SEC-204-2(a)(14), SEC-206(4)-7]
+    examiner_asks: "How do you ensure agents send only approved client agreements with the brochure delivered, and where are executed copies and delivery records retained?"
+
+  - id: RIA-REC-009
+    description: Agents never delete records. Retention is five years; deletion is a human, documented act outside the agent path.
+    tool: "*.delete*"
+    priority: 5
+    deny_if: "true"
+    no_override: true
+    controls: [SEC-204-2(e)]
+    examiner_asks: "Can an automated agent delete or alter required records, and how would you know?"
+
+  - id: RIA-REC-010
+    description: >
+      Voiding a sent or completed e-sign envelope is a record change and is never allowed through
+      an agent. Voiding an unsent draft is not a record change and is allowed.
+    tool: esign.void_envelope
+    priority: 5
+    deny_if: args.envelope_status in [sent, delivered, completed]
+    allow_if: args.envelope_status in [draft, created]
+    controls: [SEC-204-2(e), SEC-204-2(a)(10)]
+    examiner_asks: "Can an automated agent void executed or in-flight client agreements?"
+
+# ------------------------------------------------------------------------------------------ examiner request-list index
+# What the SEC's initial document request typically asks for on day one, mapped to the rules and
+# evidence sections that answer it. Printed as the last section of `regent evidence`.
+
+exam_requests:
+  - item: "Compliance manual and most recent annual review (206(4)-7)"
+    answered_by: [RIA-TRD-001, RIA-TRD-011, RIA-FEE-020]
+    evidence_sections: ["2. Policies in force", "Policy changes in period"]
+  - item: "Trade blotter / order memoranda (204-2(a)(3))"
+    answered_by: [RIA-REC-019, RIA-TRD-001, RIA-TRD-011]
+    evidence_sections: ["3. Supervision evidence", "8. Trade blotter"]
+  - item: "Discretionary authority records and client instructions"
+    answered_by: [RIA-TRD-011]
+    evidence_sections: ["4. Denials", "8. Trade blotter"]
+  - item: "Restricted / watch list and Code of Ethics records (204A, 204A-1)"
+    answered_by: [RIA-TRD-001, RIA-ETH-003]
+    evidence_sections: ["3. Supervision evidence", "4. Denials"]
+  - item: "Principal and agency-cross transaction consents (206(3), 206(3)-2)"
+    answered_by: [RIA-TRD-002]
+    evidence_sections: ["4. Denials"]
+  - item: "Custody records, SLOAs, surprise-examination reports (206(4)-2)"
+    answered_by: [RIA-CUS-004, RIA-CUS-015, RIA-CUS-016, RIA-CUS-017, RIA-CUS-018]
+    evidence_sections: ["3. Supervision evidence", "4. Denials"]
+  - item: "Fee billing calculations and reconciliations"
+    answered_by: [RIA-FEE-020]
+    evidence_sections: ["3. Supervision evidence"]
+  - item: "Advertising file and marketing review records (206(4)-1, 204-2(a)(11))"
+    answered_by: [RIA-COM-006]
+    evidence_sections: ["3. Supervision evidence"]
+  - item: "Client agreements and Form ADV / relationship-summary delivery records (204-2(a)(10), 204-3)"
+    answered_by: [RIA-REC-008]
+    evidence_sections: ["3. Supervision evidence"]
+  - item: "Reg S-P safeguards program, service-provider oversight and incident log"
+    answered_by: [RIA-DAT-005, RIA-DAT-014, RIA-DAT-007]
+    evidence_sections: ["4. Denials", "3. Supervision evidence"]
+  - item: "Electronic communications retention and off-channel review (204-2(a)(7))"
+    answered_by: [RIA-COM-013, RIA-COM-006]
+    evidence_sections: ["4. Denials"]
+  - item: "Policies on AI and automated tools, and evidence they operate as disclosed in Form ADV"
+    answered_by: [RIA-TRD-001, RIA-TRD-011, RIA-REC-019]
+    evidence_sections: ["1. Audit chain integrity", "2. Policies in force", "6. Coverage gaps"]

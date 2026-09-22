@@ -1,0 +1,39 @@
+# private — never commit
+legal/
+CLAUDE.md
+docs/STAGES.md
+docs/COMPETITIVE.md
+*.pem
+*.key
+.env
+.env.*
+secrets/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
+
+# local state
+*.sqlite
+*.db
+ledger/
+.regent/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+
+# regent build outputs
+examples/*/out/
+evidence.json
+evidence.md
+*.db-wal
+*.db-shm

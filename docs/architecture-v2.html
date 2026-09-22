@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regent Architecture v2</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F6F7F4; --surface:#FFFFFF; --ink:#1B2433; --ink-2:#4B5566; --ink-3:#7B8494;
+  --line:#D9DDD6; --line-2:#C2C7BE;
+  --accent:#B9661A; --accent-soft:#F6E7D3;
+  --blue:#2F5F9E; --blue-soft:#E0E9F5; --teal:#2A7A73; --teal-soft:#DCEFEC;
+  --ok:#2E7D4F; --ok-soft:#DDF0E4; --bad:#B3392F; --bad-soft:#F6DEDB; --warn:#8A6A12; --warn-soft:#F5EBC7;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --disp:"Archivo","IBM Plex Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121821; --surface:#1A2230; --ink:#E7EAEF; --ink-2:#B4BCC9; --ink-3:#8590A1;
+    --line:#2C3644; --line-2:#3B4657;
+    --accent:#E39A4A; --accent-soft:#3A2A16;
+    --blue:#7FA6DC; --blue-soft:#1C2A3E; --teal:#6FC3BA; --teal-soft:#15302D;
+    --ok:#6FCF97; --ok-soft:#1B3427; --bad:#F08C82; --bad-soft:#3E1F1C; --warn:#E3C35A; --warn-soft:#3A3116;
+  }
+}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;padding-inline:16px;padding-block:32px 80px;}
+.wrap{max-width:820px;margin:0 auto;}
+h1,h2,h3{font-family:var(--disp);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:22px;font-weight:600;margin-top:56px;padding-top:20px;border-top:1px solid var(--line)}
+h3{font-size:17px;font-weight:600;margin-top:28px}
+p{margin:12px 0;max-width:68ch}
+.lede{font-size:18px;color:var(--ink-2);max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+figure{margin:24px 0;padding:18px 16px;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
+figure svg{display:block;max-width:100%;height:auto;min-width:560px;color:var(--ink);font-family:var(--sans)}
+figcaption{font-size:13.5px;color:var(--ink-2);margin-top:12px;max-width:70ch}
+.tbl{overflow-x:auto;margin:20px 0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500;background:var(--bg)}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.tag.open{background:var(--ok-soft);color:var(--ok)} .tag.paid{background:var(--accent-soft);color:var(--accent)}
+.tag.agw{background:var(--blue-soft);color:var(--blue)} .tag.agt{background:var(--teal-soft);color:var(--teal)}
+.tag.you{background:var(--accent-soft);color:var(--accent)} .tag.dead{background:var(--bad-soft);color:var(--bad)}
+pre{font-family:var(--mono);font-size:13px;line-height:1.5;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;overflow-x:auto;margin:16px 0}
+code{font-family:var(--mono);font-size:.92em;background:var(--surface);border:1px solid var(--line);padding:0 4px;border-radius:3px}
+pre code{border:none;padding:0;background:none}
+.c-ok{color:var(--ok)} .c-bad{color:var(--bad)} .c-warn{color:var(--warn)} .c-acc{color:var(--accent)}
+.callout{border-left:3px solid var(--accent);padding:10px 16px;background:var(--surface);margin:20px 0;max-width:70ch}
+.callout.bad{border-left-color:var(--bad)}
+.callout p{margin:6px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}
+.cell{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px}
+.cell h4{margin:0 0 6px;font-family:var(--disp);font-size:15px;font-weight:600}
+.cell p{margin:4px 0;font-size:14px;color:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="eyebrow">Regent (working codename) · agent compliance layer · v2 · 2026-09-18 · not published</div>
+<h1>Regent Architecture v2</h1>
+<p class="lede">Revised after the landscape check. The proxy and the generic policy engine already exist as well-funded open source; Regent does not rebuild them. It is the vertical compliance product that sits on top of them: regulatory policy packs, approval workflows a compliance officer recognises, auditor-ready evidence, and a control plane across gateways.</p>
+
+<div class="callout bad">
+<p><strong>What changed since v1.</strong> Two projects cover most of what v1 proposed to build: <strong>agentgateway</strong> (Linux Foundation, Rust, Apache-2.0, 4.6k stars) is the runtime proxy for MCP, A2A and LLM traffic with JWT/API-key auth, CEL authorization on tool name and arguments, external authz (Envoy ext_authz gRPC/HTTP), and OpenTelemetry. <strong>Microsoft Agent Governance Toolkit</strong> (Apr 2026, MIT, 6.1k stars, Python-first plus TS/.NET/Rust/Go) has YAML/OPA/Cedar policy, SPIFFE/DID identity, sandboxing, Merkle audit trails, <code>require_approval</code> gates, and mapping to OWASP Agentic Top 10, NIST AI RMF, EU AI Act and SOC 2. A long tail (custos, mcp-airlock, behavry-proxy, Provenrail, Clay Seal) does hash-chained ledgers and evidence bundles. Writing another proxy or another generic policy engine has zero chance. The name “agentgate” is taken at least six times.</p>
+</div>
+
+<h2>1. What is still open</h2>
+<p>Everything above is built by engineers for engineers, mapped to <em>generic</em> frameworks, and stops at “we logged it and here is a table of controls.” Nothing found does the following, and these are the four things Regent builds:</p>
+<div class="grid2">
+<div class="cell"><h4>Vertical regulatory packs</h4><p>Policies written against the actual rules a firm is examined on: FINRA 3110 (supervision), 4511 (books and records), SEC 206(4)-7, Reg S-P, HIPAA §164.312, PCI DSS 4.0 §7–10. Not “NIST AI RMF Govern 1.1”.</p></div>
+<div class="cell"><h4>Compliance-grade approval workflows</h4><p>Four-eyes, delegation, time-boxed grants, attestation on approve, escalation, separation of duties. What a CCO already runs for humans, applied to agents.</p></div>
+<div class="cell"><h4>Auditor-ready evidence</h4><p>Per-period package: policies in force and their history, exceptions, approvals, denials, coverage gaps, all keyed to control IDs an examiner asks for. Generated, not assembled by hand.</p></div>
+<div class="cell"><h4>Cross-gateway control plane</h4><p>One policy source of truth pushed to agentgateway, AGT in-process, or a bare MCP proxy; fleet view; SSO/RBAC; alerts. Nobody spans runtimes.</p></div>
+</div>
+
+<h2>2. The layer stack, with ownership</h2>
+<p>Same six layers as v1. What changed is who supplies each one. Blue is agentgateway, teal is the Microsoft toolkit, amber is Regent. Regent never sits inline on the data path in production — it is the policy decision service and the evidence system the runtime calls out to.</p>
+<div class="legend"><span class="tag agw">agentgateway (runtime)</span><span class="tag agt">MS Agent Governance Toolkit</span><span class="tag you">Regent</span></div>
+
+<figure>
+<svg viewBox="0 0 760 470" role="img" aria-label="Layer stack showing agentgateway supplying identity, credential broker and audit; the Microsoft toolkit supplying the generic policy engine and generic control mapping; Regent supplying vertical policy packs, approval workflows, evidence packaging and control plane.">
+<defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<rect x="20" y="40" width="150" height="400" rx="4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="95" y="62" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="currentColor" opacity=".7">INGRESS</text>
+<g font-size="12" fill="currentColor" text-anchor="middle">
+<text x="95" y="90">MCP stdio / HTTP</text><text x="95" y="112">A2A</text><text x="95" y="134">OpenAI-compatible</text><text x="95" y="156">REST / gRPC</text>
+</g>
+<text x="95" y="190" text-anchor="middle" font-size="10.5" fill="#2F5F9E" font-family="IBM Plex Mono, monospace">agentgateway</text>
+<text x="95" y="206" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">handles all of these</text>
+<text x="95" y="240" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">fallback when no</text>
+<text x="95" y="254" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">gateway is present:</text>
+<text x="95" y="270" text-anchor="middle" font-size="10.5" fill="#2A7A73" font-family="IBM Plex Mono, monospace">AGT in-process SDK</text>
+
+<g>
+<rect x="215" y="40" width="330" height="44" rx="4" fill="#2F5F9E" fill-opacity=".10" stroke="#2F5F9E" stroke-width="1.4"/>
+<text x="228" y="58" font-size="13" font-weight="600" fill="currentColor">L1 Identity</text>
+<text x="228" y="75" font-size="11" fill="currentColor" opacity=".8">JWT / OAuth 2.1 / API key · SPIFFE via AGT · on-behalf-of claims</text>
+<text x="533" y="58" text-anchor="end" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#2F5F9E">agentgateway</text>
+
+<rect x="215" y="96" width="330" height="44" rx="4" fill="#2A7A73" fill-opacity=".10" stroke="#2A7A73" stroke-width="1.4"/>
+<text x="228" y="114" font-size="13" font-weight="600" fill="currentColor">L2a Policy engine</text>
+<text x="228" y="131" font-size="11" fill="currentColor" opacity=".8">CEL inline (agentgateway) · YAML/OPA/Cedar (AGT) · deny by default</text>
+<text x="533" y="114" text-anchor="end" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#2A7A73">AGT / agentgateway</text>
+
+<rect x="215" y="152" width="330" height="44" rx="4" fill="#B9661A" fill-opacity=".10" stroke="#B9661A" stroke-width="2"/>
+<text x="228" y="170" font-size="13" font-weight="600" fill="#B9661A">L2b Vertical policy packs</text>
+<text x="228" y="187" font-size="11" fill="currentColor" opacity=".85">RIA · broker-dealer · HIPAA practice · PCI ops — compiled to CEL / Cedar</text>
+<text x="533" y="170" text-anchor="end" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#B9661A">Regent</text>
+
+<rect x="215" y="208" width="330" height="44" rx="4" fill="#B9661A" fill-opacity=".10" stroke="#B9661A" stroke-width="2"/>
+<text x="228" y="226" font-size="13" font-weight="600" fill="#B9661A">L3 Approval workflows</text>
+<text x="228" y="243" font-size="11" fill="currentColor" opacity=".85">four-eyes · delegation · time-boxed grants · attestation · SoD — via ext_authz</text>
+<text x="533" y="226" text-anchor="end" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#B9661A">Regent</text>
+
+<rect x="215" y="264" width="330" height="44" rx="4" fill="#2F5F9E" fill-opacity=".10" stroke="#2F5F9E" stroke-width="1.4"/>
+<text x="228" y="282" font-size="13" font-weight="600" fill="currentColor">L4 Credential broker</text>
+<text x="228" y="299" font-size="11" fill="currentColor" opacity=".8">backend auth, token passthrough/exchange, per-target creds</text>
+<text x="533" y="282" text-anchor="end" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#2F5F9E">agentgateway</text>
+
+<rect x="215" y="320" width="330" height="44" rx="4" fill="#2F5F9E" fill-opacity=".10" stroke="#2F5F9E" stroke-width="1.4"/>
+<text x="228" y="338" font-size="13" font-weight="600" fill="currentColor">L5 Audit stream</text>
+<text x="228" y="355" font-size="11" fill="currentColor" opacity=".8">OTel logs/traces of every tool call and decision · AGT Merkle trail if in-process</text>
+<text x="533" y="338" text-anchor="end" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#2F5F9E">agentgateway / AGT</text>
+
+<rect x="215" y="376" width="330" height="44" rx="4" fill="#B9661A" fill-opacity=".10" stroke="#B9661A" stroke-width="2"/>
+<text x="228" y="394" font-size="13" font-weight="600" fill="#B9661A">L6 Evidence + control plane</text>
+<text x="228" y="411" font-size="11" fill="currentColor" opacity=".85">ingest OTel → hash-chain → map to FINRA/SEC/HIPAA IDs → examiner package · fleet policy push</text>
+<text x="533" y="394" text-anchor="end" font-size="10.5" font-family="IBM Plex Mono, monospace" fill="#B9661A">Regent</text>
+</g>
+<g stroke="currentColor" stroke-width="1" marker-end="url(#ar2)">
+<line x1="380" y1="84" x2="380" y2="94"/><line x1="380" y1="140" x2="380" y2="150"/><line x1="380" y1="196" x2="380" y2="206"/><line x1="380" y1="252" x2="380" y2="262"/><line x1="380" y1="308" x2="380" y2="318"/><line x1="380" y1="364" x2="380" y2="374"/>
+</g>
+<rect x="590" y="40" width="150" height="400" rx="4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="665" y="62" text-anchor="middle" font-size="11" font-family="IBM Plex Mono, monospace" fill="currentColor" opacity=".7">TARGETS</text>
+<g font-size="12" fill="currentColor" text-anchor="middle">
+<text x="665" y="90">MCP servers</text><text x="665" y="112">SaaS APIs</text><text x="665" y="134">LLM providers</text><text x="665" y="156">other agents</text>
+</g>
+<text x="665" y="190" text-anchor="middle" font-size="10.5" fill="#2F5F9E" font-family="IBM Plex Mono, monospace">agentgateway</text>
+<text x="665" y="206" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">federates and routes</text>
+<line x1="170" y1="120" x2="213" y2="120" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+<line x1="545" y1="286" x2="588" y2="286" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar2)"/>
+<text x="380" y="452" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">Regent touches the request path only through ext_authz (decision + approval). Everything else is async ingestion of the audit stream.</text>
+</svg>
+<figcaption>Regent owns the three amber layers and nothing else. The runtime and the generic engine are upstream open source you contribute to, not compete with.</figcaption>
+</figure>
+
+<h2>3. Where Regent plugs in</h2>
+<p>agentgateway exposes Envoy-style external authorization (gRPC by default, HTTP alternative) with method, path, headers and body available, and JWT claims passable as metadata. MCP <code>tools/call</code> is an HTTP POST whose body carries the tool name and arguments, so an ext_authz service sees everything it needs. Regent’s Policy Decision Service (PDS) answers <em>allow / deny / hold-for-approval</em>; on hold it returns 403 with a retry hint while the approval runs out-of-band, and the agent re-issues after approval with a grant token. Audit comes from agentgateway’s OTel exporter into Regent’s ingester, which hash-chains and maps it.</p>
+
+<figure>
+<svg viewBox="0 0 760 330" role="img" aria-label="Deployment diagram: agent clients call agentgateway; agentgateway evaluates inline CEL then calls Regent PDS over ext_authz; PDS consults policy packs and approval workflow; agentgateway exports OTel to Regent ingester which hash-chains and produces evidence; control plane pushes packs to gateways.">
+<defs><marker id="ar5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker>
+<marker id="ar5a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#B9661A"/></marker></defs>
+<rect x="20" y="120" width="130" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="85" y="141" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Agents</text>
+<text x="85" y="158" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">Claude · Cursor · custom</text>
+<rect x="215" y="105" width="190" height="80" rx="4" fill="#2F5F9E" fill-opacity=".10" stroke="#2F5F9E" stroke-width="1.6"/>
+<text x="310" y="128" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">agentgateway</text>
+<text x="310" y="146" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".8">JWT verify · inline CEL</text>
+<text x="310" y="161" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".8">ext_authz → PDS</text>
+<text x="310" y="176" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".8">OTel export</text>
+<rect x="610" y="120" width="130" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="675" y="141" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">MCP servers</text>
+<text x="675" y="158" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">custodian · CRM · email</text>
+<line x1="150" y1="145" x2="213" y2="145" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar5)"/>
+<line x1="405" y1="145" x2="608" y2="145" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar5)"/>
+<text x="506" y="137" text-anchor="middle" font-size="10.5" fill="currentColor">if allowed</text>
+<!-- Regent box -->
+<rect x="215" y="215" width="525" height="95" rx="6" fill="#B9661A" fill-opacity=".08" stroke="#B9661A" stroke-width="2"/>
+<text x="230" y="236" font-size="12.5" font-weight="600" fill="#B9661A">Regent</text>
+<rect x="230" y="248" width="150" height="48" rx="3" fill="none" stroke="#B9661A" stroke-width="1"/>
+<text x="305" y="267" text-anchor="middle" font-size="11.5" fill="currentColor">Policy Decision Svc</text>
+<text x="305" y="283" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">packs · approvals · grants</text>
+<rect x="400" y="248" width="150" height="48" rx="3" fill="none" stroke="#B9661A" stroke-width="1"/>
+<text x="475" y="267" text-anchor="middle" font-size="11.5" fill="currentColor">Evidence ingester</text>
+<text x="475" y="283" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">hash-chain · control map · pack</text>
+<rect x="570" y="248" width="155" height="48" rx="3" fill="none" stroke="#B9661A" stroke-width="1"/>
+<text x="647" y="267" text-anchor="middle" font-size="11.5" fill="currentColor">Control plane</text>
+<text x="647" y="283" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">fleet · SSO · push packs</text>
+<line x1="290" y1="185" x2="290" y2="246" stroke="#B9661A" stroke-width="1.4" marker-end="url(#ar5a)"/>
+<text x="240" y="205" font-size="10.5" fill="currentColor">ext_authz gRPC (sync, &lt;20 ms)</text>
+<line x1="330" y1="246" x2="330" y2="187" stroke="#B9661A" stroke-width="1.4" marker-end="url(#ar5a)"/>
+<text x="338" y="205" font-size="10.5" fill="currentColor">allow / deny / hold</text>
+<line x1="380" y1="185" x2="450" y2="246" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar5)"/>
+<text x="445" y="210" font-size="10.5" fill="currentColor" opacity=".8">OTel (async)</text>
+<line x1="640" y1="246" x2="405" y2="112" stroke="currentColor" stroke-width="1" stroke-dasharray="2 3" marker-end="url(#ar5)"/>
+<text x="560" y="205" font-size="10.5" fill="currentColor" opacity=".8">compiled CEL + config push</text>
+<!-- approver -->
+<rect x="20" y="230" width="150" height="50" rx="4" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<text x="95" y="251" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Approvers</text>
+<text x="95" y="268" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">Slack · Teams · email</text>
+<line x1="228" y1="272" x2="172" y2="272" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar5)" marker-start="url(#ar5)"/>
+<text x="95" y="60" font-size="11" fill="currentColor" opacity=".7">No gateway? Regent ships the same PDS as an AGT policy plugin (in-process) and a thin stdio shim for dev.</text>
+</svg>
+<figcaption>Regent is a sidecar decision service plus an async evidence pipeline. If agentgateway disappeared tomorrow, the same PDS runs inside the Microsoft toolkit or behind a 200-line stdio shim.</figcaption>
+</figure>
+
+<h2>4. Differentiation table, revised</h2>
+<div class="tbl"><table>
+<thead><tr><th>Layer</th><th>Supplied by (free, mature)</th><th>Regent builds</th><th>What it regulates</th><th>Open / paid</th></tr></thead>
+<tbody>
+<tr><td><strong>L1 Identity</strong></td><td><span class="tag agw">agentgateway</span> JWT/OAuth/API key · <span class="tag agt">AGT</span> SPIFFE/DID</td><td>Nothing. Contribute on-behalf-of claim conventions upstream</td><td>Who acts, for whom</td><td>—</td></tr>
+<tr><td><strong>L2a Engine</strong></td><td><span class="tag agw">agentgateway</span> CEL · <span class="tag agt">AGT</span> YAML/OPA/Cedar</td><td>Compiler: Regent pack → CEL and Cedar, so one pack runs on either</td><td>What an agent may do</td><td><span class="tag open">open</span></td></tr>
+<tr><td><strong>L2b Packs</strong></td><td>Nobody. AGT maps to NIST/EU AI Act only</td><td>RIA pack (FINRA 3110/4511, SEC 206(4)-7, Reg S-P), broker-dealer, HIPAA practice, PCI ops. Each rule cites its regulation and examiner question</td><td>The specific rules a firm is examined on</td><td><span class="tag open">1 pack open</span> <span class="tag paid">rest paid</span></td></tr>
+<tr><td><strong>L3 Approvals</strong></td><td><span class="tag agt">AGT</span> <code>require_approval</code> gate only</td><td>Four-eyes, delegation chains, time-boxed grants, attestation text on approve, SoD checks, escalation, SLA. Slack/Teams/email adapters</td><td>Human oversight (EU AI Act Art. 14, FINRA 3110)</td><td><span class="tag open">basic open</span> <span class="tag paid">workflows paid</span></td></tr>
+<tr><td><strong>L4 Broker</strong></td><td><span class="tag agw">agentgateway</span> backend auth</td><td>Nothing</td><td>Least privilege</td><td>—</td></tr>
+<tr><td><strong>L5 Audit</strong></td><td><span class="tag agw">agentgateway</span> OTel · <span class="tag agt">AGT</span> Merkle trail · custos/Provenrail receipts</td><td>Ingester only: normalise, redact, hash-chain, WORM to S3 Object Lock</td><td>Books and records, tamper evidence</td><td><span class="tag open">open</span></td></tr>
+<tr><td><strong>L6 Evidence</strong></td><td>Generic control tables (AGT), receipt verifiers</td><td>Period package per pack: policies in force + history, exceptions, approvals, denials, coverage gaps, each keyed to the control ID and the examiner request it answers. Export PDF/JSON</td><td>Proving compliance to an examiner</td><td><span class="tag paid">paid</span></td></tr>
+<tr><td><strong>Control plane</strong></td><td>Nobody spans gateways</td><td>Hosted: fleet view, central packs, SSO/RBAC, drift alerts, push to agentgateway / AGT / shim</td><td>Operating it across an org</td><td><span class="tag paid">paid</span></td></tr>
+</tbody></table></div>
+
+<h2>5. Worked case: RIA portfolio agent (through agentgateway)</h2>
+<p>Same firm as v1: 40-person RIA, agent <code>portfolio-assistant</code> with custodian, CRM, email and e-sign MCP servers, CCO answerable for SEC 206(4)-7, Reg S-P and FINRA-style books and records. agentgateway federates the four servers; Regent’s RIA pack is compiled to CEL for the cheap checks and the PDS handles anything needing approval or state.</p>
+
+<pre><code><span class="c-acc"># packs/ria/trading.yaml — readable by the CCO; compiled to CEL for agentgateway, Cedar for AGT</span>
+pack: ria/v1
+rules:
+  - id: RIA-TRD-001
+    tool: custodian.place_trade
+    allow_if: args.notional_usd &lt;= 5000 and args.account in principal.assigned_accounts
+    hold_if:  args.notional_usd &gt; 5000
+    approval:
+      workflow: four_eyes
+      approvers: role:supervising_principal
+      attest: "I have reviewed this trade for suitability under the client's IPS."
+      grant_ttl: 10m
+    deny_if: args.security_type in [options, margin] and not principal.options_approved
+    controls: [FINRA-3110(b), SEC-206(4)-7, FINRA-4511]
+    examiner_asks: "How are agent-initiated trades supervised above your threshold?"
+
+  - id: RIA-DAT-004
+    tool: email.send
+    deny_if: contains_pii(args.body, [ssn, account_number])
+    no_override: true
+    controls: [SEC-RegS-P-248.30, GLBA-501(b)]
+    examiner_asks: "What prevents non-public personal information leaving via automated channels?"</code></pre>
+
+<figure>
+<svg viewBox="0 0 760 440" role="img" aria-label="Sequence: agent calls place_trade for 12,000 dollars via agentgateway; inline CEL passes; ext_authz to Regent PDS returns hold; PDS asks supervising principal in Slack with attestation; approval creates a 10-minute grant; agent retries with grant, gateway forwards to custodian; OTel event ingested, hash-chained and mapped to controls; a later email with SSN is denied with no override.">
+<defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<g font-size="12" font-weight="600" fill="currentColor" text-anchor="middle">
+<text x="70" y="30">Agent</text><text x="240" y="30">agentgateway</text><text x="420" y="30">Regent PDS</text><text x="580" y="30">Supervisor</text><text x="700" y="30">Custodian</text>
+</g>
+<g stroke="currentColor" stroke-width=".8" stroke-dasharray="3 3" opacity=".5">
+<line x1="70" y1="42" x2="70" y2="420"/><line x1="240" y1="42" x2="240" y2="420"/><line x1="420" y1="42" x2="420" y2="420"/><line x1="580" y1="42" x2="580" y2="420"/><line x1="700" y1="42" x2="700" y2="420"/>
+</g>
+<rect x="410" y="42" width="20" height="378" fill="#B9661A" fill-opacity=".12" stroke="#B9661A" stroke-width=".8"/>
+<g font-size="10.5" fill="currentColor">
+<line x1="72" y1="66" x2="238" y2="66" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="155" y="58" text-anchor="middle">1 place_trade(KAPOOR-01, SELL VTI, $12k)</text>
+<text x="248" y="92">2 JWT ok · inline CEL: account in scope ✓</text>
+<line x1="242" y1="116" x2="408" y2="116" stroke="#B9661A" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="325" y="108" text-anchor="middle">3 ext_authz {tool,args,claims}</text>
+<text x="438" y="140">4 RIA-TRD-001: 12k &gt; 5k → </text><text x="580" y="140" fill="#8A6A12" font-weight="600">HOLD</text>
+<line x1="432" y1="164" x2="578" y2="164" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="505" y="156" text-anchor="middle">5 Slack: approve + attest</text>
+<line x1="578" y1="192" x2="432" y2="192" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="505" y="184" text-anchor="middle" fill="#2E7D4F" font-weight="600">6 approved · raj · attested · 14:02</text>
+<line x1="408" y1="216" x2="242" y2="216" stroke="#B9661A" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="325" y="208" text-anchor="middle">7 403 hold → then grant g-88217 (10 m)</text>
+<line x1="238" y1="240" x2="72" y2="240" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="155" y="232" text-anchor="middle">8 "held; approved — retry with grant"</text>
+<line x1="72" y1="266" x2="238" y2="266" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="155" y="258" text-anchor="middle">9 retry + grant g-88217</text>
+<line x1="242" y1="292" x2="698" y2="292" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="470" y="284" text-anchor="middle">10 ext_authz allow (grant valid) → forward with backend creds</text>
+<line x1="698" y1="318" x2="242" y2="318" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="470" y="310" text-anchor="middle">11 fill 41.2 sh @ 291.30</text>
+<line x1="242" y1="344" x2="408" y2="344" stroke="currentColor" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+<text x="325" y="336" text-anchor="middle">12 OTel span (async)</text>
+<text x="438" y="364">13 ingest → redact → chain → FINRA-3110(b), 206(4)-7, 4511</text>
+<line x1="60" y1="384" x2="740" y2="384" stroke="currentColor" stroke-width=".6" stroke-dasharray="2 4" opacity=".5"/>
+<line x1="72" y1="408" x2="238" y2="408" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar3)"/>
+<text x="155" y="400" text-anchor="middle">14 email.send(body with SSN)</text>
+<text x="248" y="418" fill="#B3392F" font-weight="600">inline CEL deny (RIA-DAT-004, no_override) · logged · Reg S-P</text>
+</g>
+</svg>
+<figcaption>The hot path stays in agentgateway. Regent is consulted only when a rule says hold, and everything is reconstructed later from the audit stream. Cheap denials never leave the gateway.</figcaption>
+</figure>
+
+<h3>Quarter-end package the CCO receives</h3>
+<div class="grid2">
+<div class="cell"><h4>Policies in force</h4><p>RIA pack v1.3, every change with author and date, mapped to 206(4)-7, Reg S-P, FINRA 3110/4511.</p></div>
+<div class="cell"><h4>Supervision evidence</h4><p>214 held trades, 214 approvals with attestation text, 0 unapproved executions, median approval 4 m 12 s.</p></div>
+<div class="cell"><h4>Data-protection evidence</h4><p>37 NPI egress blocks with redacted payloads; 0 overrides possible by design.</p></div>
+<div class="cell"><h4>Coverage gaps</h4><p>2 tools reachable with no rule (docusign.void, crm.export). The finding an examiner would otherwise write.</p></div>
+</div>
+
+<h2>6. Building it to encompass anything</h2>
+<p>The v1 hexagonal core survives, but the ports change: the runtime is now a port too. Regent’s core sees a normalised <code>ToolCall</code> and returns a <code>Decision</code>; a runtime adapter translates from whatever is enforcing (agentgateway ext_authz, AGT plugin, stdio shim, or a future gateway) and a compiler emits each runtime’s native policy dialect for the cheap rules.</p>
+
+<pre><code><span class="c-acc"># regent/core/ports.py</span>
+class Runtime(Protocol):                     # agentgateway_extauthz · agt_plugin · stdio_shim
+    async def serve(self, decide: Callable[[ToolCall], Awaitable[Decision]]) -&gt; None: ...
+    def compile(self, pack: Pack) -&gt; NativePolicy: ...          # CEL · Cedar · Rego
+
+class AuditSource(Protocol):                 # otel_otlp · agt_merkle · jsonl
+    async def events(self) -&gt; AsyncIterator[AuditEvent]: ...
+
+class Approver(Protocol):                    # slack · teams · email · webhook · cli
+    async def ask(self, hold: Hold, workflow: Workflow) -&gt; Approval | Timeout: ...
+
+class Store(Protocol):                       # sqlite (dev) · postgres · s3_worm
+    async def append(self, entry: ChainedEntry) -&gt; None: ...
+    async def grants(self) -&gt; GrantIndex: ...
+
+class Pack(Protocol):                        # ria · broker_dealer · hipaa_practice · pci_ops · dev_default
+    rules: list[Rule]; controls: ControlMap; examiner_questions: dict[str, str]
+
+<span class="c-acc"># core loop</span>
+async def decide(call, packs, grants, approver, store):
+    rule = packs.match(call)                            # deterministic, unit-tested
+    if rule.denies(call):            return Decision.deny(rule)
+    if rule.holds(call):
+        if g := grants.valid_for(call): return Decision.allow(rule, grant=g)
+        hold = await store.open_hold(call, rule)
+        asyncio.create_task(run_workflow(hold, rule.approval, approver, store))
+        return Decision.hold(hold.id)                   # gateway returns 403 + retry hint
+    return Decision.allow(rule)
+
+<span class="c-acc"># evidence</span>
+async def ingest(source, packs, store):
+    async for ev in source.events():
+        entry = ChainedEntry.from_(redact(ev)).link(store.head())
+        entry.controls = packs.controls_for(ev.rule_id)
+        await store.append(entry)</code></pre>
+
+<pre><code>regent/
+  core/        ports.py  models.py  match.py  workflow.py  chain.py  redact.py  evidence.py
+  runtimes/    agentgateway_extauthz.py  agt_plugin.py  stdio_shim.py
+  compilers/   cel.py  cedar.py  rego.py
+  sources/     otel_otlp.py  agt_merkle.py  jsonl.py
+  approvers/   cli.py  slack.py  teams.py  webhook.py
+  stores/      sqlite.py  postgres.py  s3_worm.py
+  packs/       dev_default/  ria/  (broker_dealer/ hipaa_practice/ pci_ops/ — paid, separate repo)
+  cli/         regent serve | compile | ingest | evidence | verify
+  examples/    agentgateway-ria-demo/   agt-inprocess-demo/
+  tests/       core 100% with fakes; contract tests per adapter; pack tests assert every rule cites a control</code></pre>
+
+<h2>7. Build plan, revised</h2>
+<div class="tbl"><table>
+<thead><tr><th>When</th><th>Ship</th><th>Proves</th></tr></thead>
+<tbody>
+<tr><td><strong>Day 1</strong></td><td>agentgateway running locally federating filesystem + GitHub MCP servers; Regent PDS as ext_authz gRPC server; <code>dev_default</code> pack; hold → CLI approval → grant → retry loop working; SQLite store</td><td>The plug-in point is real and the hold/grant loop works end to end</td></tr>
+<tr><td><strong>Day 2</strong></td><td>CEL compiler for cheap rules; OTel OTLP ingester with hash chain and <code>regent verify</code>; RIA pack v0 (6–8 rules, each with control ID and examiner question); <code>regent evidence</code> emitting Markdown + JSON; README with demo GIF; Apache-2.0; CI</td><td>Credible v0.1: a compliance officer can read the pack, an engineer can run the demo in 5 minutes</td></tr>
+<tr><td><strong>Weeks 2–4</strong></td><td>AGT plugin runtime + Cedar compiler; Slack approver with four-eyes and attestation; Postgres + S3 Object Lock store; PDF evidence; upstream PRs to agentgateway (on-behalf-of claims, MCP-aware ext_authz body) to get listed in their docs</td><td>Runs on both runtimes; first 3 design partners (RIAs) live</td></tr>
+<tr><td><strong>Weeks 5–12</strong></td><td>Hosted control plane; broker-dealer and HIPAA packs; SSO; drift alerts; SOC 2 Type I started for Regent itself</td><td>Something to invoice; something an acquirer can diligence</td></tr>
+</tbody></table></div>
+
+<h2>8. What can kill it, updated</h2>
+<p>Microsoft extends AGT’s compliance mapping into vertical packs — they have the framework list already and a compliance business next door (Purview). Solo.io ships a commercial compliance tier on agentgateway. Behavry or a funded NHI vendor gets to the RIA vertical first. The MCP spec absorbs approvals natively. And still the most likely: the software is fine and nobody sells it to CCOs. The counters remain the same and narrower: be the pack everyone copies, get into agentgateway’s docs as the reference ext_authz, get one RIA compliance consultant as a co-founder or advisor within 60 days, and be in the FINRA/SEC comment process for agent supervision guidance before it lands.</p>
+
+</div>
+</body>
+</html>

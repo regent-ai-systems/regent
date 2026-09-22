@@ -1,0 +1,17 @@
+# agentgateway MCP targets for the RIA demo (one fake server per business system)
+- name: custodian
+  stdio:
+    cmd: python3
+    args: ["examples/agentgateway-ria-demo/demo_servers.py", "custodian"]
+- name: crm
+  stdio:
+    cmd: python3
+    args: ["examples/agentgateway-ria-demo/demo_servers.py", "crm"]
+- name: email
+  stdio:
+    cmd: python3
+    args: ["examples/agentgateway-ria-demo/demo_servers.py", "email"]
+- name: esign
+  stdio:
+    cmd: python3
+    args: ["examples/agentgateway-ria-demo/demo_servers.py", "esign"]

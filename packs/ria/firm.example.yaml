@@ -1,0 +1,25 @@
+# Firm overlay for the RIA pack — EXAMPLE values for a ~$1.5B AUM, 40-person adviser.
+#
+# Copy to `firm.yaml` beside ria.yaml (git-ignored) or pass `--firm firm.yaml`. The pack refuses to
+# load without every key below. These numbers are the CCO's to set; nothing here is a recommendation.
+
+firm:
+  # RIA-TRD-001 — exception thresholds
+  large_trade_threshold_usd: 250000          # $250k–$1M typical; not a per-trade supervision threshold
+  model_tolerance_pct: 5.0                   # deviation from the account's model allocation, in percentage points
+  concentration_limit_pct: 10.0              # post-trade single-issuer concentration
+  restricted_list: ["ACME", "BIGCO", "CUSIP-000000000"]   # §204A restricted / watch list, refreshed daily from the compliance system
+  accounts_with_pending_withdrawal: ["ACC-7001"]           # refreshed from operations; trades in these are held
+
+  # RIA-FEE-020
+  fee_tolerance_bps: 2                       # fee vs. client schedule
+  fee_period_change_pct: 25.0                # fee vs. prior period
+
+  # RIA-CUS-015 — Reg S-ID lookback for changed payees/instructions
+  instruction_change_lookback_days: 30
+
+  # RIA-DAT-014 — channels the firm treats as secure delivery for NPI to the account holder
+  secure_channels: [portal, encrypted_email]
+
+  # Informational — printed in the evidence package header
+  dual_registrant: false

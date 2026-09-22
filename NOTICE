@@ -1,0 +1,14 @@
+Regent — agent compliance layer
+Copyright 2026 Regent AI Systems LLC
+
+This product includes software developed by Regent AI Systems LLC and
+its contributors. Licensed under the Apache License, Version 2.0.
+
+Third-party components are used under their own licenses:
+  - agentgateway (Linux Foundation) — Apache-2.0 — https://github.com/agentgateway/agentgateway
+  - Microsoft Agent Governance Toolkit — MIT — https://github.com/microsoft/agent-governance-toolkit
+Full third-party attributions are maintained in THIRD_PARTY_NOTICES.md
+once dependencies are pinned.
+
+Regulatory policy packs describe controls; they are not legal advice and
+do not constitute a compliance opinion. See DISCLAIMER.md.
